@@ -23,18 +23,18 @@ public class Server implements Serializable{
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private ServerSocket ss;
-	private List<Client> clients = new ArrayList<Client>();
-	private HashMap<String, String> users = null;
-	private Socket s;
-	private List<ChatRoom> rooms = new ArrayList<ChatRoom>();
+	private ServerSocket ss;											//服务器套接字
+	private List<Client> clients = new ArrayList<Client>();				//与服务器保持连接的
+	private HashMap<String, String> users = null;						//保存用户信息，包括用户名和密码
+	private Socket s;													//当前或即将连到服务器的客户套接字
+	private List<ChatRoom> rooms = new ArrayList<ChatRoom>();			//用户已经建立的聊天室
 	
 
 	public static void main(String[] args) {
 		new Server().start();
 	}
 
-	private void init() {
+	private void init() {												//反序列化读取历史用户和聊天室记录
 		File file = new File("./store/users.obj");
 		File file1 = new File("./store/rooms.obj");
 		if (file.exists()) {
@@ -95,7 +95,7 @@ public class Server implements Serializable{
 		}
 	}
 
-	private void end() {
+	private void store() {									//序列化用户和聊天室记录进行存盘
 		File file = new File("./store/users.obj");
 		File file1 = new File("./store/rooms.obj");
 		if(!file.exists()) {	
@@ -135,8 +135,8 @@ public class Server implements Serializable{
 		}
 	}
 
-	private void start() {
-		init();
+	private void start() {												//服务器启动函数
+		init();															//反序列化读取历史信息记录
 		try {
 			ss = new ServerSocket(9999);
 		} catch (IOException e) {
@@ -148,8 +148,7 @@ public class Server implements Serializable{
 				s = ss.accept();
 				Client client = new Client(s);
 				//clients.add(client);
-				new Thread(client).start();
-				end();
+				new Thread(client).start();								//为每一个客户连接新建线程处理业务
 			} catch (IOException e) {
 				try {
 					if (s != null) {
@@ -162,9 +161,8 @@ public class Server implements Serializable{
 					e1.printStackTrace();
 				}
 			} finally {
-				end();
+				store();												//对服务器的数据进行序列化存盘
 			}
-
 		}
 	}
 	
@@ -175,12 +173,12 @@ public class Server implements Serializable{
 	}
 
 	class Client implements Runnable {
-		private Socket s;
-		private DataInputStream dis;
-		private DataOutputStream dos;
-		private String name;
-		private String pwd;
-		private List<ChatRoom> room = new ArrayList<ChatRoom>();
+		private Socket s;												//服务器和客户端的套接字
+		private DataInputStream dis;									//套接字的输入流
+		private DataOutputStream dos;									//套接字的输出流
+		private String name;											//客户名字
+		private String pwd;												//客户密码
+		private List<ChatRoom> room = new ArrayList<ChatRoom>();		//该客户目前加入的聊天室
 
 		public Client(Socket s) {
 			this.s = s;
@@ -216,20 +214,20 @@ public class Server implements Serializable{
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}finally {
-				end();
+				store();
 			}
 		}
 
-		public void handle(String string) {  // 处理客户端来信
+		public void handle(String string) {  								// 处理客户端来信
 			String[] arr = string.split(" ");
-			for(ChatRoom cr : room) {		//群聊
+			for(ChatRoom cr : room) {										//群聊
 				if(arr[0].equals("$" + cr.getName())) {
 					cr.sendMsg(this, string.substring(arr[0].length()));;
 					return;
 				}
 			}
 			
-			if(string.contains("$@")) {		//私聊
+			if(string.contains("$@")) {										//私聊
 				String fname = arr[0].substring(2);
 				String msg = string.substring(arr[0].length());
 				boolean find = false;
@@ -248,7 +246,7 @@ public class Server implements Serializable{
 			}
 			
 			switch (arr[0]) {
-			case "$login":				// 处理用户登录信息
+			case "$login":													// 处理用户登录信息
 				name = arr[1];
 				pwd = arr[2];
 				boolean success = false;
@@ -257,7 +255,7 @@ public class Server implements Serializable{
 						send("DUPLICATED_NAME");
 						name = null;
 						pwd = null;
-					} else {							//验证是否重复登录
+					} else {												//验证是否重复登录
 						boolean logined = false;
 						for(Client client : clients) {
 							if(client.name.equals(name) && this != client) {
@@ -277,7 +275,7 @@ public class Server implements Serializable{
 					System.out.println(name + " login !");
 				}
 				
-				if(success) {                     //登录成功，向客户端发送聊天室列表。
+				if(success) {                     							//登录成功，向客户端发送聊天室列表。
 					clients.add(this);
 					String msg = "$roomList";
 					for(ChatRoom chatRoom : rooms) {
@@ -290,13 +288,13 @@ public class Server implements Serializable{
 				}
 				break;
 				
-			case "$create":					//创建聊天室
+			case "$create":													//创建聊天室
 				boolean established = true;
 				if(getRoom(arr[1]) != null) {
 					established = false;
 					send("DUPLICATED_ROOMNAME");
 				}
-				if(established) {                                  // 通知所有在线用户来新聊天室聊天
+				if(established) {                                  			// 通知所有在线用户来新聊天室聊天
 					rooms.add(new ChatRoom(arr[1], arr[2]));
 					for(Client client :clients) {
 						client.send("[大厅消息]:有新聊天室"+arr[1] + " 建立,快来聊聊吧" + getTime());
@@ -305,13 +303,13 @@ public class Server implements Serializable{
 				}
 				break;
 				
-			case "$enter":					//进入聊天室
+			case "$enter":													//进入聊天室
 				boolean entered = false;
 				ChatRoom troom = getRoom(arr[1]);
 				if(troom != null) {
 					entered = true;
 				}
-				if(entered) {                                  // 通知所有在线用户来新聊天室聊天
+				if(entered) {                                  				// 通知所有在线用户来新聊天室聊天
 					if(this.room.contains(troom)) {
 						send("DUPLICATED_ENTERED");
 					} else {
@@ -336,20 +334,20 @@ public class Server implements Serializable{
 				}
 				break;
 				
-			case "$exit":					//退出聊天室
+			case "$exit":													//退出聊天室
 				boolean out = false;
 				ChatRoom target = getRoom(arr[1]);
 				if(target != null) {
 					out = true;
 					send("SUCCESS_EXIT");
 				}
-				if(out) {                                  // 通知所有聊天室用户有人退出
+				if(out) {                                  					// 通知所有聊天室用户有人退出
 					target.removeClient(this);
 					room.remove(target);
 					target.sendMsg("系统消息", this.name+ " 已经退出了聊天室");
 				}
 				break;
-			case "$hongbao":									//处理红包业务
+			case "$hongbao":												//处理红包业务
 				ChatRoom cRoom = getRoom(arr[1]);
 				Random random = new Random();
 				int id = random.nextInt(65536);
@@ -360,9 +358,9 @@ public class Server implements Serializable{
 					
 				}
 				Gift gift = null;
-				if(arr.length == 4) {		//公平红包
+				if(arr.length == 4) {										//公平红包
 					gift = new Gift(id, Double.parseDouble(arr[2]), Integer.parseInt(arr[3]), true);		
-				} else {					//拼手气红包
+				} else {													//拼手气红包
 					gift = new Gift(id, Double.parseDouble(arr[2]), Integer.parseInt(arr[3]), false);
 				}
 				cRoom.gifts.put(id, gift);
@@ -372,7 +370,7 @@ public class Server implements Serializable{
 					client.send(msg);
 				}
 				break;
-			case "$qiang":
+			case "$qiang":													//处理抢红包业务
 				ChatRoom chatRoom = getRoom(arr[1]);
 				if(chatRoom == null) {
 					return;
@@ -393,7 +391,7 @@ public class Server implements Serializable{
 					send("您已经抢过"+gid+" 号红包了。");
 					return;
 				}
-				send("恭喜你抢到"+ money +"元！");
+				send("["+arr[1]+"]系统消息: 恭喜你抢到"+ money +"元！");
 				Entry<String, Double> max = gf.getMax();
 				if(max != null) {
 					String str = gid + " 号红包已经被抢光啦！恭喜 "+max.getKey()+" 手气最佳抢到 "+max.getValue()+ "元";
@@ -426,7 +424,7 @@ public class Server implements Serializable{
 				dos = new DataOutputStream(s.getOutputStream());
 				while (true) {
 					String string = dis.readUTF();
-					handle(string);
+					handle(string);											//处理用户端的消息
 					System.out.println(string);
 				}
 

@@ -16,12 +16,12 @@ import javax.swing.JOptionPane;
 
 
 public class Login {
-	Socket socket;
-	DataOutputStream dos; 
-	DataInputStream dis;
-	Scanner sc = new Scanner(System.in);
-	boolean checked = false;
-	List<String> rooms = new ArrayList<String>();
+	Socket socket;												//和服务器端连接的套接字
+	DataOutputStream dos; 										//和socket联系的输出流
+	DataInputStream dis;										//和socket联系的输出流
+	Scanner sc = new Scanner(System.in);						//键盘输入
+	boolean checked = false;									//用户的登录状态，true为已通过后台验证
+	List<String> rooms = new ArrayList<String>();				//本用户在此次连接中进入的聊天室计划
 	String temp = null;
 	
 	public static void main(String[] args) {
@@ -34,7 +34,7 @@ public class Login {
 		return "	---" + sdf.format(start);
 	}
 	
-	public void  check() throws IOException{
+	public void  check() throws IOException{				//验证登录或注册信息
 		boolean success = false;
 		while(!success) {
 			String nameAndPwd = sc.nextLine();
@@ -50,7 +50,7 @@ public class Login {
 			send("$login " + nameAndPwd);
 			String ans = dis.readUTF();
 			if(ans.equals("DUPLICATED_NAME")) {
-				System.out.println("用户名已存在，请换一个：");
+				System.out.println("注册用户名已存在，或者登录密码错误!");
 			} else if(ans.equals("DUPLICATED_LOGIN")) {
 				System.out.println("请不要重复登录！");
 			} else {
@@ -176,6 +176,13 @@ public class Login {
 				return ;
 			}
 			
+			double money = Double.parseDouble(arr[2]);						//检验金额是否太低，保证每个红包最低0.01元。
+			int count = Integer.parseInt(arr[3]);
+			if((int)(money*100) < count) {
+				System.out.println("单个红包不可低于0.01元！");
+				return;
+			}
+			
 			for(String str : rooms) {								//检验房间号
 				if(str.equals(arr[1])) {
 					exist = true;
@@ -272,7 +279,7 @@ public class Login {
 			System.out.println("成功连接服务器，请输入用户名和密码(用户名和密码不能有空格，两者用空格隔开)：");
 			check();
 			
-			new Thread(new Runnable() {		
+			new Thread(new Runnable() {							//监听键盘输入
 				public void run() {
 					while(true) {
 						String output = sc.nextLine();
@@ -285,7 +292,7 @@ public class Login {
 				}
 			}).start();
 			
-			while(true) {
+			while(true) {										//监听后台服务器返回数据
 				String string = dis.readUTF();
 				back(string);
 				//System.out.println(string);

@@ -7,16 +7,15 @@ import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Gift {
-	private int id;
-	private double money;
-	private int count;
-	private  double remainMoney;
-	private int remainCount;
-	private boolean fair;
-	private boolean empty = false;
-	//private PriorityQueue<Double> gets;
-	private HashMap<String, Double> gets;
-	private ChatRoom cr;
+	private int id;										//红包编号
+	private double money;								//红包金额
+	private int count;									//红包个数
+	private  double remainMoney;						//红包剩余金额
+	private int remainCount;							//红包剩余个数
+	private boolean fair;								//是否需要拼手气
+	private boolean empty = false;						//红包是否为空
+	private HashMap<String, Double> gets;				//那些用户抢了这个红包以及分别抢了多少
+	private ChatRoom cr;								//红包属于哪个聊天室
 	
 	public Gift(int id, double money, int count, boolean fair) {
 		this.id = id;

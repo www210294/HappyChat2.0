@@ -18,13 +18,11 @@ import server.Server.Client;
 
 class ChatRoom implements Serializable{
  	private static final long serialVersionUID = 1L;
-	private String name;
-	private String introduction;
-	private String history = "";
-	public transient Map<Integer,Gift> gifts = new HashMap<Integer, Gift>();		//本聊天室内产生的红包
-//	transient PriorityQueue<Double> gets;
-	//transient List<Client> persons = new ArrayList<Client>();
-	transient CopyOnWriteArrayList<Client> persons = new CopyOnWriteArrayList<Client>();
+	private String name;															//聊天室名字
+	private String introduction;													//聊天室说明
+	private String history = "";													//聊天室历史记录
+	public transient Map<Integer,Gift> gifts = new HashMap<Integer, Gift>();		//本聊天室在服务器启动期间内产生的红包
+	transient CopyOnWriteArrayList<Client> persons = new CopyOnWriteArrayList<Client>(); //本聊天室在服务器启动期间内在线的用户
 	
 	
 	ChatRoom(String name, String introduction) {
@@ -40,14 +38,14 @@ class ChatRoom implements Serializable{
 	
 	
 	
-	public void sendMsg(Client c, String str) {
+	public void sendMsg(Client c, String str) {										//单个用户向本聊天室群发消息
 		str = "[" + name + "]" + c.getName() + ":" + str + "        " + Login.getTime();
 		history += (str +"\n");
 		for(Client client : persons) {
 			client.send(str);
 		}
 	}
-	public void sendMsg(String s, String str) {
+	public void sendMsg(String s, String str) {										//系统向聊天室发送的消息
 		str = "[" + name + "]" + s + ":   " + str + "        " + Login.getTime();
 		history += (str +"\n");
 		for(Client client : persons) {
@@ -55,7 +53,7 @@ class ChatRoom implements Serializable{
 		}
 	}
 	
-	public void stroe(String msg) {
+	public void stroe(String msg) {													//将相关信息追加到聊天室的历史记录中
 		msg = msg  + "        " + Login.getTime() + "\n"; 
 		history += msg;
 	}
